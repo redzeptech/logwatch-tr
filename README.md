@@ -1,3 +1,6 @@
+![GitHub release](https://img.shields.io/github/v/release/redzeptech/logwatch-tr?label=version)
+![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
+
 # LogWatch-TR
 Windows Event Log (.evtx) Triage and Suspicious Activity Reporting Tool
 
