@@ -1,80 +1,38 @@
-# LogWatch – Windows Event Log Triage Aracı
+![GitHub release](https://img.shields.io/github/v/release/redzeptech/logwatch-tr?label=version)
+![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
 
-Windows Event Log (`.evtx`) dosyalarını okuyup şüpheli aktiviteleri işaretleyen ve HTML rapor üreten Python aracı.
+# LogWatch-TR
+Windows Event Log (.evtx) Triage and Suspicious Activity Reporting Tool
 
-## Özellikler
+LogWatch-TR is a lightweight digital forensics triage tool that parses Windows Security Event Logs and highlights potentially suspicious activities.  
+The goal is not to replace an analyst, but to accelerate the initial review phase.
 
-- **python-evtx** ile `.evtx` dosyası okuma
-- Aşağıdaki Event ID'lerin tespiti ve sınıflandırılması:
-  - **4625** – Başarısız giriş (kritik)
-  - **4624** – Gece girişi (00:00–06:00) veya RDP (Logon Type 10)
-  - **4720** – Kullanıcı hesabı oluşturma (kritik)
-  - **4672** – Özel yetkiler atandı (admin) (şüpheli)
-  - **1102** – Denetim günlüğü silindi (kritik)
-- Renkli zaman çizelgesi:
-  - **Kırmızı** – Kritik
-  - **Sarı** – Şüpheli
-  - **Yeşil** – Normal
-- Tek çıktıda özet istatistikler ve HTML rapor
+## Features
 
-## Gereksinimler
+The tool automatically analyzes .evtx files and detects:
 
-- Python 3.9+
-- Windows, macOS veya Linux
+- Failed login attempts (Event ID 4625)
+- Night logins (00:00-06:00)
+- RDP logins (Logon Type 10)
+- New user account creation (Event ID 4720)
+- Privileged logons (Event ID 4672)
+- Audit log clearing attempts (Event ID 1102)
 
-## Kurulum
+The output is a readable **HTML timeline report** categorized as:
+- 🔴 Critical
+- 🟡 Suspicious
+- 🟢 Normal
+- Filters Windows service logons (reduces false positives)
 
-```bash
-pip install -r requirements.txt
-```
+---
 
-veya doğrudan:
+## Installation
 
-```bash
-pip install python-evtx
-```
+Requires Python 3.10+
 
-## Kullanım
-
-Komut satırından EVTX dosya yolunu verin; araç analiz eder ve HTML rapor üretir.
+Clone repository:
 
 ```bash
-python evtx_triage.py "C:\Windows\System32\winevt\Logs\Security.evtx"
-```
+git clone https://github.com/redzeptech/logwatch-tr.git
+cd logwatch-tr
 
-Özel çıktı dosyası belirtmek için:
-
-```bash
-python evtx_triage.py Security.evtx -o rapor.html
-```
-
-### Argümanlar
-
-| Argüman        | Açıklama                                      |
-|----------------|-----------------------------------------------|
-| `evtx_file`    | Analiz edilecek `.evtx` dosyasının yolu       |
-| `-o`, `--output` | HTML rapor dosyası (varsayılan: `<dosya_adı>_report.html`) |
-
-## Çıktı
-
-- Konsola: bulunan olay sayısı ve kritik / şüpheli / normal dağılımı
-- Dosyaya: tek sayfalık HTML rapor
-  - Özet (kritik / şüpheli / normal sayıları)
-  - Zaman sıralı tablo (zaman, Event ID, seviye, açıklama)
-  - Renklerle vurgulanmış zaman çizelgesi
-
-## Tespit Kuralları (Özet)
-
-| Event ID | Koşul              | Seviye   |
-|----------|--------------------|----------|
-| 4625     | Başarısız giriş    | Kritik   |
-| 4720     | Kullanıcı oluşturma| Kritik   |
-| 1102     | Log silme          | Kritik   |
-| 4624     | Gece (00–06) veya RDP girişi | Şüpheli / Normal |
-| 4672     | Admin yetkisi      | Şüpheli  |
-
-4624 için: gece girişi veya gece RDP → şüpheli; gündüz RDP veya normal giriş → normal.
-
-## Lisans
-
-Bu proje eğitim ve triage amaçlıdır; kullanım sorumluluğu kullanıcıya aittir.
