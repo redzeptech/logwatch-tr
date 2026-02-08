@@ -35,4 +35,16 @@ Clone repository:
 ```bash
 git clone https://github.com/redzeptech/logwatch-tr.git
 cd logwatch-tr
+## Contributing
+
+This project is intentionally kept simple to serve as a starting point for DFIR triage automation.
+
+Ideas and improvements are welcome:
+- additional EventID detections
+- brute-force correlation
+- visualization improvements
+- export formats
+
+Feel free to fork, improve, and open a pull request.
+
 
