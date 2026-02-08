@@ -22,6 +22,7 @@ The output is a readable **HTML timeline report** categorized as:
 - 🔴 Critical
 - 🟡 Suspicious
 - 🟢 Normal
+- Filters Windows service logons (reduces false positives)
 
 ---
 
