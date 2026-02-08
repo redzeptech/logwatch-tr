@@ -137,6 +137,11 @@ def analyze_record(record):
 
     if event_id == EVENT_4672:
         subject = data.get("SubjectUserName", "?")
+
+        # SYSTEM servis logonlarını filtrele (false positive azaltma)
+        if subject and subject.upper() == "SYSTEM":
+            return None
+
         return {
             "event_id": event_id,
             "time": time_created,
@@ -145,6 +150,7 @@ def analyze_record(record):
             "description": f"Özel yetkiler atandı (Admin): {subject}",
             "data": data,
         }
+
 
     if event_id == EVENT_4625:
         target = data.get("TargetUserName", "?")
@@ -159,32 +165,36 @@ def analyze_record(record):
             "data": data,
         }
 
-    if event_id == EVENT_4624:
+        if event_id == EVENT_4624:
         target = data.get("TargetUserName", "?")
         logon_type = data.get("LogonType", "")
         ip = data.get("IpAddress", "-")
+
+        # SERVICE LOGON (LogonType 5) = Windows servisleri -> filtrele
+        if logon_type == "5":
+            return None
+
         is_rdp = logon_type == LOGON_TYPE_RDP
+
         # Gece 00:00 - 06:00
         is_night = False
         if dt:
             hour = dt.hour
-            if dt.tzinfo:
-                # UTC ise locale'e çevirmiyoruz; kullanıcı rapora bakarak yorumlar
-                hour = dt.hour
             is_night = 0 <= hour < 6
 
-        if is_night and is_rdp:
+        # sadece RDP veya gece loginleri al
+        if not (is_rdp or is_night):
+            return None
+
+        if is_rdp and is_night:
             level = LEVEL_SUSPICIOUS
-            desc = f"Gece RDP girişi (00-06): {target} (IP: {ip})"
-        elif is_night:
-            level = LEVEL_SUSPICIOUS
-            desc = f"Gece girişi (00-06): {target} (IP: {ip}, LogonType: {logon_type})"
+            desc = f"Gece RDP girişi: {target} (IP: {ip})"
         elif is_rdp:
-            level = LEVEL_NORMAL
-            desc = f"RDP girişi (LogonType 10): {target} (IP: {ip})"
+            level = LEVEL_SUSPICIOUS
+            desc = f"RDP girişi: {target} (IP: {ip})"
         else:
-            level = LEVEL_NORMAL
-            desc = f"Başarılı giriş: {target} (IP: {ip}, LogonType: {logon_type})"
+            level = LEVEL_SUSPICIOUS
+            desc = f"Gece girişi: {target} (IP: {ip})"
 
         return {
             "event_id": event_id,
@@ -197,6 +207,7 @@ def analyze_record(record):
             "is_rdp": is_rdp,
             "is_night": is_night,
         }
+
 
     return None
 
@@ -242,6 +253,8 @@ def generate_html_report(events, evtx_path, output_path):
     out = Path(output_path)
     if not out.suffix.lower() == ".html":
         out = out.with_suffix(".html")
+    insights = brute_force_insights(events, window_minutes=10, threshold=30)
+
 
     by_level = defaultdict(list)
     for ev in events:
@@ -312,6 +325,43 @@ def generate_html_report(events, evtx_path, output_path):
             Rapor tarihi: {report_time}<br>
             Toplam işaretlenen olay: <strong>{len(events)}</strong>
         </div>
+                <h2>Hızlı Triage Özeti (4625)</h2>
+        <div class="legend">
+            <strong>Durum:</strong> {alert_text}<br>
+            <strong>Toplam 4625:</strong> {insights["failed_total"]}<br>
+            <strong>En yoğun pencere:</strong> {ww_text}
+        </div>
+
+        <div class="summary">
+            <div style="flex:1; min-width:280px;">
+                <h3>Top IP (4625)</h3>
+                <ol>
+                    {top_ips_html}
+                </ol>
+            </div>
+            <div style="flex:1; min-width:280px;">
+                <h3>Top Hedef Kullanıcı</h3>
+                <ol>
+                    {top_users_html}
+                </ol>
+            </div>
+        </div>
+
+
+            # brute-force mini listeler
+    def li(items):
+        return "".join([f"<li><code>{a}</code> — <strong>{b}</strong></li>" for a, b in items]) or "<li>Yok</li>"
+
+    top_ips_html = li(insights["top_ips"])
+    top_users_html = li(insights["top_users"])
+
+    ww = insights["worst_window"]
+    if ww["start"] and ww["end"]:
+        ww_text = f"{ww['start'].strftime('%Y-%m-%d %H:%M:%S')} → {ww['end'].strftime('%Y-%m-%d %H:%M:%S')} ({insights['window_minutes']} dk pencerede {ww['count']} deneme)"
+    else:
+        ww_text = "Yeterli veri yok"
+
+    alert_text = "⚠️ Brute-force şüphesi (eşik aşıldı)" if insights["alert"] else "✅ Eşik aşımı yok (brute-force sinyali zayıf)"
 
         <div class="summary">
             <span class="badge critical">Kritik: {critical_count}</span>
@@ -390,6 +440,60 @@ def main():
     suspicious = sum(1 for e in events if e["level"] == LEVEL_SUSPICIOUS)
     normal = sum(1 for e in events if e["level"] == LEVEL_NORMAL)
     print(f"  - Kritik: {critical}, Şüpheli: {suspicious}, Normal: {normal}")
+from collections import Counter, deque
+
+def brute_force_insights(events, window_minutes=10, threshold=30):
+    """
+    4625 (failed logon) olaylarından brute force / spraying sinyali çıkarır.
+    window_minutes: kayan pencere
+    threshold: pencere içinde alarm eşiği
+    """
+    fails = [e for e in events if e.get("event_id") == "4625" and e.get("dt") and e.get("data")]
+    fails.sort(key=lambda x: x["dt"])
+
+    ip_counter = Counter()
+    user_counter = Counter()
+    ip_user_counter = Counter()
+
+    # zaman penceresi analizi
+    dq = deque()  # (dt, ip)
+    worst_window = {"count": 0, "start": None, "end": None}
+
+    for ev in fails:
+        ip = ev["data"].get("IpAddress", "-")
+        user = ev["data"].get("TargetUserName", "?")
+
+        ip_counter[ip] += 1
+        user_counter[user] += 1
+        ip_user_counter[(ip, user)] += 1
+
+        # kayan pencere: dq içine ekle
+        dq.append((ev["dt"], ip))
+
+        # pencere dışını çıkar
+        window_start = ev["dt"].timestamp() - (window_minutes * 60)
+        while dq and dq[0][0].timestamp() < window_start:
+            dq.popleft()
+
+        # en yoğun pencereyi yakala
+        if len(dq) > worst_window["count"]:
+            worst_window["count"] = len(dq)
+            worst_window["end"] = ev["dt"]
+            worst_window["start"] = dq[0][0]
+
+    # alarm mı?
+    alert = worst_window["count"] >= threshold
+
+    return {
+        "failed_total": len(fails),
+        "top_ips": ip_counter.most_common(10),
+        "top_users": user_counter.most_common(10),
+        "top_ip_user": ip_user_counter.most_common(10),
+        "worst_window": worst_window,
+        "window_minutes": window_minutes,
+        "threshold": threshold,
+        "alert": alert,
+    }
 
     out_file = generate_html_report(events, evtx_path, output_path)
     print(f"HTML rapor kaydedildi: {out_file}")
