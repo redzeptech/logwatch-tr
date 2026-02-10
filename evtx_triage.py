@@ -10,6 +10,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 
+from actor_classifier import classify_logon_event
+
 try:
     from Evtx.Evtx import Evtx
 except Exception as e:
@@ -141,6 +143,7 @@ def analyze_record(record):
         target = data.get("TargetUserName", "?")
         ip = data.get("IpAddress", "-")
         status = data.get("Status", "?")
+        actor = classify_logon_event(data)
         return {
             "event_id": event_id,
             "time": time_created,
@@ -148,6 +151,9 @@ def analyze_record(record):
             "level": LEVEL_CRITICAL,
             "description": f"Başarısız giriş: {target} (IP: {ip}, Status: {status})",
             "data": data,
+            "actor_type": actor.actor_type,
+            "actor_confidence": actor.confidence,
+            "actor_reason": actor.reason,
         }
 
     if event_id == EVENT_4624:
@@ -155,16 +161,17 @@ def analyze_record(record):
         logon_type = data.get("LogonType", "")
         ip = data.get("IpAddress", "-")
         is_rdp = (logon_type == LOGON_TYPE_RDP)
+        actor = classify_logon_event(data)
 
         # 00:00-06:00 (based on event dt hour)
         is_night = False
         if dt:
             is_night = 0 <= dt.hour < 6
 
-        if is_night and is_rdp:
+        if is_night and is_rdp and actor.actor_type in {"human", "local_builtin"}:
             level = LEVEL_SUSPICIOUS
             desc = f"Gece RDP girişi (00-06): {target} (IP: {ip})"
-        elif is_night:
+        elif is_night and actor.actor_type in {"human", "local_builtin"}:
             level = LEVEL_SUSPICIOUS
             desc = f"Gece girişi (00-06): {target} (IP: {ip}, LogonType: {logon_type})"
         elif is_rdp:
@@ -184,6 +191,9 @@ def analyze_record(record):
             "logon_type": logon_type,
             "is_rdp": is_rdp,
             "is_night": is_night,
+            "actor_type": actor.actor_type,
+            "actor_confidence": actor.confidence,
+            "actor_reason": actor.reason,
         }
 
     return None
@@ -262,7 +272,11 @@ def generate_insights(events, window_minutes=10, threshold=30):
     # night RDP
     rdp_night = [
         e for e in events
-        if str(e.get("event_id")) == EVENT_4624 and e.get("is_rdp") and e.get("is_night") and e.get("dt")
+        if str(e.get("event_id")) == EVENT_4624
+        and e.get("is_rdp")
+        and e.get("is_night")
+        and e.get("dt")
+        and e.get("actor_type") in {"human", "local_builtin"}
     ]
     if rdp_night:
         users = Counter(((e.get("data") or {}).get("TargetUserName") or "?") for e in rdp_night)
