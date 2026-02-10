@@ -75,3 +75,8 @@ Clone repository:
 git clone https://github.com/redzeptech/logwatch-tr.git
 cd logwatch-tr
 pip install python-evtx
+
+## Download
+
+- Windows (EXE): Download from GitHub Releases (v1.0.0)
+
