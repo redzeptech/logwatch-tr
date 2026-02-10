@@ -2,103 +2,74 @@
 ![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
 
 # LogWatch-TR
-Windows Event Log (.evtx) Offline Triage & Authentication Investigation Tool
 
-## About
+Offline Windows Security.evtx triage tool that analyzes authentication activity and highlights real user behavior instead of system noise.
 
-**LogWatch-TR** is an offline DFIR (Digital Forensics & Incident Response) triage tool designed for blue teams and investigators.
+LogWatch-TR is a lightweight DFIR (Digital Forensics & Incident Response) utility designed to help analysts quickly review Windows Security Event Logs and focus on meaningful activity.
 
-Instead of monitoring systems like a SIEM, LogWatch-TR analyzes exported Windows Security logs and produces an investigation timeline.
-
-When an analyst receives a `Security.evtx` file from a suspected machine, the first problem is:
-
-> “Where should I start?”
-
-LogWatch-TR answers that question by automatically highlighting high-risk authentication behavior and attacker indicators.
-
-The goal is not to replace an analyst —  
-it is to **reduce investigation time and false positives.**
+The tool does **not** try to replace a SIEM.  
+Its purpose is to accelerate the first investigation stage: *“What actually happened on this machine?”*
 
 ---
 
-## Key Capability — Human vs System Login Detection
+## What Makes It Different
 
-One of the biggest problems in Windows log analysis is noise.
+Windows Security logs are extremely noisy.  
+Most detections fail because they treat every logon event as if a human performed it.
 
-Windows constantly authenticates using:
-- SYSTEM
-- LOCAL SERVICE
-- NETWORK SERVICE
-- scheduled tasks
+LogWatch-TR introduces **actor classification**:
+
+It automatically distinguishes:
+- human users
+- local built-in accounts
 - service accounts
-- computer accounts (`HOSTNAME$`)
+- machine/computer accounts
 
-Traditional scripts incorrectly flag these as suspicious night logins.
+This dramatically reduces false positives and allows real suspicious behavior to stand out.
 
-LogWatch-TR classifies each authentication actor into:
-
-- `human`
-- `local_builtin`
-- `service/system`
-- `machine`
-- `unknown`
-
-Night login alerts are triggered **only for real users**, not Windows background activity.
-
-This dramatically reduces false positives and allows analysts to immediately focus on attacker behavior.
+Examples:
+- SYSTEM logons are not flagged as suspicious
+- Scheduled task/service activity is filtered
+- Only meaningful human logins are evaluated for alerts
 
 ---
 
-## What It Detects
+## Detection Capabilities
 
-The tool analyzes high-value Windows Security Event IDs:
+The tool analyzes `.evtx` files and correlates important authentication events:
 
-| Event ID | Meaning | Why important |
-|--------|------|------|
-| 4625 | Failed logon | Brute-force / password spraying indicator |
-| 4624 | Successful logon | Lateral movement / account access |
-| 4720 | User created | Persistence / backdoor account |
-| 4672 | Special privileges assigned | Privilege escalation indicator |
-| 1102 | Audit log cleared | Anti-forensics activity |
+- Failed login attempts — **Event ID 4625**
+- Successful logons — **Event ID 4624**
+- Night logins (00:00-06:00)
+- RDP logins (Logon Type 10)
+- New user account creation — **Event ID 4720**
+- Privileged logon — **Event ID 4672**
+- Audit log clearing — **Event ID 1102**
+- Possible privilege escalation (4624 → 4672 correlation)
 
-Additional heuristics:
-- Night logins (00:00–06:00)
-- Night RDP sessions
-- Brute-force attempt detection
-- Privilege escalation correlation (4624 → 4672)
+Human-only filtering is applied to suspicious login detection to prevent system/service false positives.
 
 ---
 
 ## Output
 
-LogWatch-TR generates a static HTML report including:
+LogWatch-TR generates a readable **HTML timeline report**.
 
-- chronological timeline
-- severity color coding
-- suspicious authentication events
-- brute-force patterns
-- log clearing alerts
-- investigation insights
+Events are categorized:
 
-The report is designed to be shared with investigators or management without requiring a SIEM.
+- 🔴 Critical
+- 🟡 Suspicious
+- 🟢 Normal
 
----
-
-## What LogWatch-TR is NOT
-
-LogWatch-TR is **not a SIEM** and does not:
-- monitor endpoints
-- collect logs continuously
-- generate real-time alerts
-- store telemetry
-
-It is an **offline investigation triage tool**.
+The report allows quick triage without opening Event Viewer.
 
 ---
 
 ## Installation
 
-Requires Python 3.10+
+Requires **Python 3.10+**
+
+Clone repository:
 
 ```bash
 git clone https://github.com/redzeptech/logwatch-tr.git
