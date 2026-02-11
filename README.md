@@ -3,7 +3,8 @@
 
 # LogWatch-TR
 
-Windows Security Event Log (EVTX) triage tool that reconstructs real user activity from noisy authentication logs.
+Windows Security Event Log (EVTX) triage tool
+
 
 LogWatch-TR helps answer the first DFIR question:
 
