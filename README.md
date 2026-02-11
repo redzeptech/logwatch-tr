@@ -1,99 +1,81 @@
 ![GitHub release](https://img.shields.io/github/v/release/redzeptech/logwatch-tr?label=version)
 ![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
 
-## Download
-
-➡️ **Download latest Windows version:**  
-https://github.com/redzeptech/logwatch-tr/releases/latest
-
-## Download (Windows)
-
-Go to **Releases** and download: `LogWatch-TR_v1.0.0_windows_x64.zip`
-
-Quick start:
-1) Extract the zip
-2) Put `Security.evtx` next to `LogWatch-TR.exe`
-3) Run:
-   ```cmd
-   LogWatch-TR.exe Security.evtx
-
 # LogWatch-TR
 
-Offline Windows Security.evtx triage tool that analyzes authentication activity and highlights real user behavior instead of system noise.
+Windows Security Event Log (EVTX) triage tool that reconstructs real user activity from noisy authentication logs.
 
-LogWatch-TR is a lightweight DFIR (Digital Forensics & Incident Response) utility designed to help analysts quickly review Windows Security Event Logs and focus on meaningful activity.
+LogWatch-TR helps answer the first DFIR question:
 
-The tool does **not** try to replace a SIEM.  
-Its purpose is to accelerate the first investigation stage: *“What actually happened on this machine?”*
+> **“What actually happened on this machine?”**
 
----
-
-## What Makes It Different
-
-Windows Security logs are extremely noisy.  
-Most detections fail because they treat every logon event as if a human performed it.
-
-LogWatch-TR introduces **actor classification**:
-
-It automatically distinguishes:
-- human users
-- local built-in accounts
-- service accounts
-- machine/computer accounts
-
-This dramatically reduces false positives and allows real suspicious behavior to stand out.
-
-Examples:
-- SYSTEM logons are not flagged as suspicious
-- Scheduled task/service activity is filtered
-- Only meaningful human logins are evaluated for alerts
+It does not replace a SIEM.  
+It accelerates the *first investigation stage*.
 
 ---
 
-## Detection Capabilities
+## Why this tool exists
 
-The tool analyzes `.evtx` files and correlates important authentication events:
+Windows Security logs are extremely noisy.
 
-- Failed login attempts — **Event ID 4625**
+Most investigations fail because:
+every logon event is treated as human activity.
+
+In reality:
+- services log in
+- scheduled tasks log in
+- system accounts log in
+
+LogWatch-TR introduces **actor classification** and isolates real user behavior.
+
+---
+
+## What it detects
+
+The tool analyzes `.evtx` files and correlates authentication events:
+
+- Failed logins — **Event ID 4625**
 - Successful logons — **Event ID 4624**
-- Night logins (00:00-06:00)
+- Night logins (00:00–06:00)
 - RDP logins (Logon Type 10)
-- New user account creation — **Event ID 4720**
+- New account creation — **Event ID 4720**
 - Privileged logon — **Event ID 4672**
 - Audit log clearing — **Event ID 1102**
-- Possible privilege escalation (4624 → 4672 correlation)
+- Privilege escalation correlation (4624 → 4672)
 
-Human-only filtering is applied to suspicious login detection to prevent system/service false positives.
-
----
-
-## Output
-
-LogWatch-TR generates a readable **HTML timeline report**.
-
-Events are categorized:
-
-- 🔴 Critical
-- 🟡 Suspicious
-- 🟢 Normal
-
-The report allows quick triage without opening Event Viewer.
+System/service noise is filtered automatically.
 
 ---
-
-## Installation
-
-Requires **Python 3.10+**
-
-Clone repository:
-
-```bash
-git clone https://github.com/redzeptech/logwatch-tr.git
-cd logwatch-tr
-pip install python-evtx
 
 ## Example Output
 
 ![Example report](docs/report.png)
 
+The tool produces a readable **HTML timeline report** categorized as:
 
+- 🔴 Critical
+- 🟡 Suspicious
+- 🟢 Normal
+
+You can review incidents without opening Event Viewer.
+
+---
+
+## Download
+
+➡️ **Latest Windows build**  
+https://github.com/redzeptech/logwatch-tr/releases/latest
+
+No installation required.
+
+---
+
+## Quick Start
+
+1. Extract the zip
+2. Export a `Security.evtx` file from Event Viewer
+3. Put it next to the executable
+4. Run:
+
+```cmd
+LogWatch-TR.exe Security.evtx
