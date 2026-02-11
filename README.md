@@ -1,6 +1,17 @@
 ![GitHub release](https://img.shields.io/github/v/release/redzeptech/logwatch-tr?label=version)
 ![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
 
+## Download (Windows)
+
+Go to **Releases** and download: `LogWatch-TR_v1.0.0_windows_x64.zip`
+
+Quick start:
+1) Extract the zip
+2) Put `Security.evtx` next to `LogWatch-TR.exe`
+3) Run:
+   ```cmd
+   LogWatch-TR.exe Security.evtx
+
 # LogWatch-TR
 
 Offline Windows Security.evtx triage tool that analyzes authentication activity and highlights real user behavior instead of system noise.
@@ -76,7 +87,5 @@ git clone https://github.com/redzeptech/logwatch-tr.git
 cd logwatch-tr
 pip install python-evtx
 
-## Download
 
-- Windows (EXE): Download from GitHub Releases (v1.0.0)
 
