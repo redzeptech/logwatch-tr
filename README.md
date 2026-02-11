@@ -1,6 +1,11 @@
 ![GitHub release](https://img.shields.io/github/v/release/redzeptech/logwatch-tr?label=version)
 ![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
 
+## Download
+
+➡️ **Download latest Windows version:**  
+https://github.com/redzeptech/logwatch-tr/releases/latest
+
 ## Download (Windows)
 
 Go to **Releases** and download: `LogWatch-TR_v1.0.0_windows_x64.zip`
