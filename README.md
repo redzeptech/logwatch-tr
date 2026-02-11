@@ -92,5 +92,8 @@ git clone https://github.com/redzeptech/logwatch-tr.git
 cd logwatch-tr
 pip install python-evtx
 
+## Example Output
+
+![Example report](docs/report.png)
 
 
