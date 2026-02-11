@@ -1,5 +1,9 @@
 ![GitHub release](https://img.shields.io/github/v/release/redzeptech/logwatch-tr?label=version)
 ![License](https://img.shields.io/github/license/redzeptech/logwatch-tr)
+> ⚠️ This is a triage tool, not a full forensic suite.
+> 
+> It helps quickly understand *what happened* before deep forensic analysis.
+> Designed for analysts, sysadmins and incident responders who need fast clarity from Windows Security logs.
 
 # LogWatch-TR
 
