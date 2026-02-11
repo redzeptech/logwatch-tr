@@ -84,3 +84,11 @@ No installation required.
 
 ```cmd
 LogWatch-TR.exe Security.evtx
+
+## Why I built this
+
+During real incident investigations, I repeatedly saw analysts lose hours inside raw Event Viewer logs.
+
+This tool was created to shorten that first step:
+understanding human activity quickly and reliably.
+
